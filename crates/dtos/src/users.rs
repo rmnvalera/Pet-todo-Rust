@@ -1,6 +1,5 @@
+use entities::users::User;
 use serde::{Deserialize, Serialize};
-
-use crate::db::User;
 
 #[derive(Debug, Deserialize)]
 pub struct RegisterRequest {

@@ -1,23 +1,13 @@
 use std::sync::Arc;
 
+use auth_jwt::Claims;
 use axum::{Json, extract::State};
 use chrono::Duration;
-use serde::{Deserialize, Serialize};
+use dtos::users::{JwtResponse, LoginRequest};
+use errors::AppError;
 use sqlx::types::chrono::Utc;
 
-use crate::{
-    AppState,
-    dto::users::{JwtResponse, LoginRequest},
-    errors::AppError,
-};
-
-#[derive(Debug, Serialize, Deserialize)]
-#[allow(unused)]
-pub struct Claims {
-    pub sub: String, // user id
-    pub email: String,
-    exp: usize, // expiration timestamp
-}
+use crate::AppState;
 
 pub async fn handler(
     State(state): State<Arc<AppState>>,
@@ -35,14 +25,14 @@ pub async fn handler(
     let claim = Claims {
         sub: user.id.to_string(),
         email: user.email.clone(),
-        exp: (Utc::now() + Duration::hours(settings.auth.jwt_deadline.as_secs() as i64)).timestamp()
+        exp: (Utc::now() + Duration::hours(settings.jwt.deadline.as_secs() as i64)).timestamp()
             as usize,
     };
 
     let token = jsonwebtoken::encode(
         &jsonwebtoken::Header::default(),
         &claim,
-        &jsonwebtoken::EncodingKey::from_secret(settings.auth.jwt_secret.as_ref()),
+        &jsonwebtoken::EncodingKey::from_secret(settings.jwt.secret.as_ref()),
     )
     .map_err(|_| AppError::InternalError)?;
 

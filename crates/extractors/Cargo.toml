@@ -1,0 +1,12 @@
+[package]
+name = "extractors"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+jsonwebtoken = { workspace = true }
+axum = { workspace = true }
+uuid = { workspace = true }
+
+errors = { path = "../errors" }
+auth_jwt ={ path = "../auth_jwt" }

@@ -56,6 +56,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "auth_jwt"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -69,6 +76,7 @@ checksum = "edca88bc138befd0323b20752846e6587272d3b03b0343c8ea28a6f819e6e71f"
 dependencies = [
  "async-trait",
  "axum-core",
+ "axum-macros",
  "bytes",
  "futures-util",
  "http",
@@ -114,6 +122,17 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57d123550fa8d071b7255cb0cc04dc302baa6c8c4a79f55701552684d8399bce"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -410,6 +429,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
+name = "dtos"
+version = "0.1.0"
+dependencies = [
+ "entities",
+ "serde",
+]
+
+[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -425,6 +452,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "entities"
+version = "0.1.0"
+dependencies = [
+ "sqlx",
+ "uuid",
 ]
 
 [[package]]
@@ -455,6 +490,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "errors"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "serde_json",
+ "sqlx",
+]
+
+[[package]]
 name = "etcetera"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -474,6 +518,17 @@ dependencies = [
  "concurrent-queue",
  "parking",
  "pin-project-lite",
+]
+
+[[package]]
+name = "extractors"
+version = "0.1.0"
+dependencies = [
+ "auth_jwt",
+ "axum",
+ "errors",
+ "jsonwebtoken",
+ "uuid",
 ]
 
 [[package]]
@@ -1573,6 +1628,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "settings"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "humantime",
+ "serde",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1924,6 +1988,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "task-service"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "auth_jwt",
+ "axum",
+ "bcrypt",
+ "chrono",
+ "dtos",
+ "entities",
+ "errors",
+ "extractors",
+ "humantime",
+ "jsonwebtoken",
+ "serde",
+ "serde_json",
+ "settings",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "thiserror"
 version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2218,14 +2305,19 @@ name = "user-service"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "auth_jwt",
  "axum",
  "bcrypt",
  "chrono",
- "config",
+ "dtos",
+ "entities",
+ "errors",
+ "extractors",
  "humantime",
  "jsonwebtoken",
  "serde",
  "serde_json",
+ "settings",
  "sqlx",
  "tokio",
  "uuid",

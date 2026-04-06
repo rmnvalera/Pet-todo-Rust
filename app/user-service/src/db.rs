@@ -1,8 +1,6 @@
-use sqlx::{
-    Pool, Postgres,
-    postgres::PgPoolOptions,
-    types::chrono::{DateTime, Utc},
-};
+use entities::users::User;
+use settings::Db;
+use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -10,19 +8,17 @@ pub struct Database {
     pub pool: Pool<Postgres>,
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-#[allow(unused)]
-pub struct User {
-    pub id: Uuid,
-    pub email: String,
-    pub name: String,
-    pub password_hash: String,
-    pub created_at: DateTime<Utc>,
-}
-
 impl Database {
-    pub async fn new(url: &str) -> Result<Self, sqlx::Error> {
-        let pool = PgPoolOptions::new().max_connections(5).connect(url).await?;
+    pub async fn new(db: &Db) -> Result<Self, sqlx::Error> {
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&db.get_url())
+            .await?;
+
+        sqlx::query(&format!("SET search_path TO {}", db.shema))
+            .execute(&pool)
+            .await?;
+
         Ok(Self { pool })
     }
 

@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
+use auth_jwt::{Claims, JwtConfig};
 use axum::{
     async_trait,
-    extract::{FromRef, FromRequestParts, State},
+    extract::FromRequestParts,
     http::request::Parts,
 };
+use errors::AppError;
 use uuid::Uuid;
-
-use crate::{AppState, errors::AppError, routes::users::login::Claims};
 
 #[allow(unused)]
 pub struct AuthUser {
@@ -18,15 +18,14 @@ pub struct AuthUser {
 #[async_trait]
 impl<S> FromRequestParts<S> for AuthUser
 where
-    S: Send + Sync,
-    Arc<AppState>: FromRef<S>,
+    S: Send + Sync + JwtConfig
 {
     type Rejection = AppError;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, AppError> {
-        let State(state) = State::<Arc<AppState>>::from_request_parts(parts, state)
-            .await
-            .map_err(|_| AppError::InternalError)?;
+     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, AppError> {
+        // let State(state) = State::<Arc<S>>::from_request_parts(parts, state)
+        //     .await
+        //     .map_err(|_| AppError::InternalError)?;
 
         let auth_header = parts
             .headers
@@ -41,7 +40,7 @@ where
         // 3. Декодируй JWT через jsonwebtoken::decode
         let decode = jsonwebtoken::decode::<Claims>(
             token,
-            &jsonwebtoken::DecodingKey::from_secret(state.settings.auth.jwt_secret.as_bytes()),
+            &jsonwebtoken::DecodingKey::from_secret(state.jwt_secret().as_bytes()),
             &jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256),
         )
         .map_err(|_| AppError::InvalidToken)?;

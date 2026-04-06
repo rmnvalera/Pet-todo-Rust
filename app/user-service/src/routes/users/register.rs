@@ -2,12 +2,10 @@ use std::sync::Arc;
 
 use axum::{Json, extract::State};
 use bcrypt::{DEFAULT_COST, hash};
+use dtos::users::{RegisterRequest, UserResponse};
+use errors::AppError;
 
-use crate::{
-    AppState,
-    dto::users::{RegisterRequest, UserResponse},
-    errors::AppError,
-};
+use crate::AppState;
 
 pub async fn handler(
     State(state): State<Arc<AppState>>,

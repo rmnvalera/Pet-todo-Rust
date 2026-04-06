@@ -1,7 +1,7 @@
 use serde::{Deserialize, Deserializer};
 use std::time::Duration;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct HumanDuration(pub Duration);
 
 impl HumanDuration {

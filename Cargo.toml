@@ -5,7 +5,7 @@ edition = "2024"
 
 
 [workspace]
-members = ["app/user-service"]
+members = ["app/*", "crates/*"]
 resolver = "2"
 
 

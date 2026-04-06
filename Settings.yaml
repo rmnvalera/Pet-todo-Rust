@@ -1,7 +1,8 @@
-port: 3002
+# port: 3002
 
-db_url: postgres://postgres:changeme@localhost:5432/todo
+db:
+  url: postgres://postgres:changeme@localhost:5432/todo
 
-auth:
-  jwt_secret: secret
-  jwt_deadline: 24h
+jwt:
+  secret: secret
+  deadline: 24h

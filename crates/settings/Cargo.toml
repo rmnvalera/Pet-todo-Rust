@@ -1,0 +1,9 @@
+[package]
+name = "settings"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+config = { workspace = true }
+humantime = { workspace = true }
