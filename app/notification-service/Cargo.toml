@@ -1,0 +1,17 @@
+[package]
+name = "notification-service"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+axum = { workspace = true, features = ["macros"] }
+async-trait = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+
+settings = { path = "../../crates/settings" }
+errors = { path = "../../crates/errors" }
+messaging ={ path = "../../crates/messaging"}
+entities = { path = "../../crates/entities" }

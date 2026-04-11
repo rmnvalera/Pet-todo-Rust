@@ -6,3 +6,11 @@ db:
 jwt:
   secret: secret
   deadline: 24h
+
+# messaging:
+#   provider: nats
+#   url: nats://localhost:4222
+
+messaging:
+  provider: rabbitmq
+  url: amqp://user:password@localhost:5672

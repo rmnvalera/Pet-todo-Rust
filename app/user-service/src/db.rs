@@ -6,20 +6,26 @@ use uuid::Uuid;
 #[derive(Clone)]
 pub struct Database {
     pub pool: Pool<Postgres>,
+    pub schema: String,
 }
 
 impl Database {
-    pub async fn new(db: &Db) -> Result<Self, sqlx::Error> {
+    pub async fn connect(db: &Db) -> Result<Self, sqlx::Error> {
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .connect(&db.get_url())
             .await?;
+        Ok(Self {
+            pool,
+            schema: db.shema.clone(),
+        })
+    }
 
-        sqlx::query(&format!("SET search_path TO {}", db.shema))
-            .execute(&pool)
-            .await?;
-
-        Ok(Self { pool })
+    pub async fn migrate(&self) -> Result<(), sqlx::Error> {
+        let query_schema = format!("CREATE SCHEMA IF NOT EXISTS {};", self.schema);
+        sqlx::query(&query_schema).execute(&self.pool).await?;
+        sqlx::migrate!("./migrations").run(&self.pool).await?;
+        Ok(())
     }
 
     pub async fn _get_all_users(&self) -> Result<Vec<User>, sqlx::Error> {

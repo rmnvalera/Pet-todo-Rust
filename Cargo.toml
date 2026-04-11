@@ -10,13 +10,21 @@ resolver = "2"
 
 
 [workspace.dependencies]
-axum = "0.7"
+axum = { version = "0.7" }
 async-trait = "0.1"
 tokio = { version = "1" }
+
 serde = { version = "1" }
 serde_json = "1"
+
+strum = "0.26"
+strum_macros = "0.26"
+thiserror = "2.0.18"
+
+validator = { version = "0.18", features = ["derive"] }
+
 config = { version = "0.15.22" }
-chrono = "0.4"
+chrono = {version = "0.4", features = ["serde"]}
 humantime = "2"
 
 bcrypt = "0.19.0"
@@ -28,5 +36,6 @@ sqlx = { version = "0.8", features = [
     "runtime-tokio",
     "uuid",
     "chrono",
+    "macros",
 ] }
-uuid = { version = "1", features = ["v4"] }
+uuid = { version = "1", features = ["v4", "serde"] }

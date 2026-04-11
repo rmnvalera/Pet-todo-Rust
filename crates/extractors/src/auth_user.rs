@@ -1,11 +1,5 @@
-use std::sync::Arc;
-
 use auth_jwt::{Claims, JwtConfig};
-use axum::{
-    async_trait,
-    extract::FromRequestParts,
-    http::request::Parts,
-};
+use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
 use errors::AppError;
 use uuid::Uuid;
 
@@ -18,15 +12,11 @@ pub struct AuthUser {
 #[async_trait]
 impl<S> FromRequestParts<S> for AuthUser
 where
-    S: Send + Sync + JwtConfig
+    S: Send + Sync + JwtConfig,
 {
     type Rejection = AppError;
 
-     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, AppError> {
-        // let State(state) = State::<Arc<S>>::from_request_parts(parts, state)
-        //     .await
-        //     .map_err(|_| AppError::InternalError)?;
-
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, AppError> {
         let auth_header = parts
             .headers
             .get("Authorization")

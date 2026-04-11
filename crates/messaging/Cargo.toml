@@ -1,0 +1,17 @@
+[package]
+name = "messaging"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+
+# NATS
+# nats = "0.26.0"
+async-nats = { version = "0.35" }
+futures = "0.3"
+
+# RabbitMQ  
+lapin = "2"

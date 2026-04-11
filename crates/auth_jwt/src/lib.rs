@@ -10,7 +10,6 @@ pub struct Claims {
     pub exp: usize, // expiration timestamp
 }
 
-
 pub trait JwtConfig {
     fn jwt_secret(&self) -> &str;
 }

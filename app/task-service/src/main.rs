@@ -1,11 +1,12 @@
 use auth_jwt::JwtConfig;
 use axum::{Router, routing::get};
+use messaging::{MessageBus, NatsMessageBus, RabbitMessageBus};
 use settings::Settings;
 use std::sync::Arc;
 
 use crate::{
     db::Database,
-    routes::{health::health, root::root},
+    routes::{health::health, root::root, tasks::router},
 };
 
 mod db;
@@ -15,6 +16,7 @@ mod routes;
 pub struct AppState {
     pub db: Database,
     pub settings: Settings,
+    pub bus: Arc<dyn MessageBus>,
 }
 
 impl JwtConfig for AppState {
@@ -40,14 +42,28 @@ async fn main() {
         service_port
     );
 
-    let state = Arc::new(AppState {
-        db: Database::new(&settings.db).await.unwrap(),
-        settings,
-    });
+    let db = Database::connect(&settings.db).await.unwrap();
+    db.migrate()
+        .await
+        .map_err(|e| format!("Migration Error: {}", e.to_string()))
+        .unwrap();
+
+    let bus: Arc<dyn MessageBus> = match settings.messaging.provider.as_str() {
+        "nats" => {
+            Arc::new(NatsMessageBus::new(&settings.messaging.url, env!("CARGO_PKG_NAME")).await)
+        }
+        "rabbitmq" => Arc::new(
+            RabbitMessageBus::new(&settings.messaging.url, env!("CARGO_PKG_NAME"), "event").await,
+        ),
+        _ => panic!("Unknown messaging provider"),
+    };
+
+    let state = Arc::new(AppState { db, settings, bus });
 
     let app = Router::new()
         .route("/", get(root))
         .route("/health", get(health))
+        .nest("/tasks", router())
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", service_port))

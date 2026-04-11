@@ -1,0 +1,124 @@
+version: "3.8"
+
+name: pet-todo
+
+x-common-env: &common-variables
+  JWT_SECRET: ${JWT_SECRET:-secret}
+  DB_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${DB_NAME:-todo}
+  # MESSAGING_PROVIDER: nats
+  # MESSAGING_URL: nats://nats:4222
+  MESSAGING_PROVIDER: rabbitmq
+  MESSAGING_URL: amqp://${RABBITMQ_USER:-user}:${RABBITMQ_PASS:-password}@rabbitmq:5672
+
+services:
+  postgres:
+    image: postgres:17.4
+    container_name: postgres-database
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${DB_NAME:-todo}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 5
+      timeout: 3s
+    networks:
+      - todo-network
+
+  nats:
+    image: nats:latest
+    container_name: nats-server
+    ports:
+      - "4222:4222" # Client port
+      - "8222:8222" # HTTP monitoring port
+      - "6222:6222" # Cluster routing port
+    command: ["-js"] # Enables JetStream (persistence)
+    volumes:
+      - nats_data:/data
+    networks:
+      - todo-network
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-user}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-password}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - todo-network
+
+  user-service:
+    ports:
+      - "3001:3001"
+    container_name: user-service
+    environment:
+      <<: *common-variables
+    build:
+      context: .
+      args:
+        - APP_NAME=user-service
+    networks:
+      - todo-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  task-service:
+    ports:
+      - "3002:3002"
+    container_name: task-service
+    environment:
+      <<: *common-variables
+    build:
+      context: .
+      args:
+        - APP_NAME=task-service
+    networks:
+      - todo-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+  notification-service:
+    ports:
+      - "3003:3003"
+    container_name: notification-service
+    environment:
+      <<: *common-variables
+    build:
+      context: .
+      args:
+        - APP_NAME=notification-service
+    networks:
+      - todo-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  nats_data:
+  rabbitmq_data:
+  postgres_data:
+
+networks:
+  todo-network:
+    name: todo-network

@@ -1,0 +1,203 @@
+use std::sync::Arc;
+
+use async_nats::Client;
+use async_trait::async_trait;
+use futures::StreamExt;
+use lapin::{
+    BasicProperties, Channel, Connection, ConnectionProperties, ExchangeKind,
+    options::{
+        BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, ExchangeDeclareOptions,
+        QueueBindOptions, QueueDeclareOptions,
+    },
+    types::FieldTable,
+};
+
+use crate::error::MessagingError;
+
+pub mod error;
+
+#[async_trait]
+pub trait MessageBus: Send + Sync {
+    async fn publish(&self, topic: &str, payload: &[u8]) -> Result<(), MessagingError>;
+    async fn subscribe(
+        &self,
+        topic: &str,
+        handler: Arc<dyn MessageHandler>,
+    ) -> Result<(), MessagingError>;
+}
+
+#[async_trait]
+pub trait MessageHandler: Send + Sync {
+    async fn handle(&self, payload: Vec<u8>);
+}
+
+pub struct NatsMessageBus {
+    pub cli: Client,
+    pub queue_group: String,
+}
+impl NatsMessageBus {
+    pub async fn new(url: &String, queue_group: &str) -> Self {
+        let nc = async_nats::connect(url).await.unwrap_or_else(|e| {
+            eprintln!("Failed to connect to Nats: {}", e);
+            std::process::exit(1);
+        });
+        Self {
+            cli: nc,
+            queue_group: queue_group.to_string(),
+        }
+    }
+}
+
+#[async_trait]
+impl MessageBus for NatsMessageBus {
+    async fn publish(&self, topic: &str, payload: &[u8]) -> Result<(), MessagingError> {
+        self.cli
+            .publish(topic.to_string(), payload.to_vec().into())
+            .await
+            .map_err(|e| MessagingError::Publish(e.to_string()))?;
+
+        Ok(())
+    }
+
+    async fn subscribe(
+        &self,
+        topic: &str,
+        handler: Arc<dyn MessageHandler>,
+    ) -> Result<(), MessagingError> {
+        let mut subscriber = self
+            .cli
+            .queue_subscribe(topic.to_string(), self.queue_group.clone())
+            .await
+            .map_err(|e| MessagingError::Subscribe(e.to_string()))?;
+
+        tokio::spawn(async move {
+            while let Some(message) = subscriber.next().await {
+                handler.handle(message.payload.to_vec()).await
+            }
+
+            eprintln!("NATS subscription ended unexpectedly!");
+            std::process::exit(1);
+        });
+
+        Ok(())
+    }
+}
+
+pub struct RabbitMessageBus {
+    pub connection: Connection,
+    pub channel: Channel,
+    pub queue: String,
+    pub exchange: String,
+}
+
+impl RabbitMessageBus {
+    pub async fn new(url: &String, queue: &str, exchange: &str) -> Self {
+        let connection = Connection::connect(url, ConnectionProperties::default())
+            .await
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to connect to Rabbit: {}", e);
+                std::process::exit(1);
+            });
+
+        let channel = connection.create_channel().await.unwrap_or_else(|e| {
+            eprintln!("Failed to create channel to Rabbit: {}", e);
+            std::process::exit(1);
+        });
+
+        channel
+            .queue_declare(queue, QueueDeclareOptions::default(), FieldTable::default())
+            .await
+            .map_err(|e| MessagingError::Publish(e.to_string()))
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to queue declare to Rabbit: {}", e);
+                std::process::exit(1);
+            });
+
+        channel
+            .exchange_declare(
+                exchange,
+                ExchangeKind::Topic,
+                ExchangeDeclareOptions::default(),
+                FieldTable::default(),
+            )
+            .await
+            .map_err(|e| MessagingError::Publish(e.to_string()))
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to queue declare to Rabbit: {}", e);
+                std::process::exit(1);
+            });
+
+        RabbitMessageBus {
+            connection,
+            channel,
+            exchange: exchange.to_string(),
+            queue: queue.to_string(),
+        }
+    }
+}
+
+#[async_trait]
+impl MessageBus for RabbitMessageBus {
+    async fn publish(&self, topic: &str, payload: &[u8]) -> Result<(), MessagingError> {
+        self.channel
+            .basic_publish(
+                &self.exchange,
+                topic,
+                BasicPublishOptions::default(),
+                payload,
+                BasicProperties::default(),
+            )
+            .await
+            .map_err(|e| MessagingError::Publish(e.to_string()))?
+            .await
+            .map_err(|e| MessagingError::Publish(e.to_string()))?;
+
+        Ok(())
+    }
+
+    async fn subscribe(
+        &self,
+        topic: &str,
+        handler: Arc<dyn MessageHandler>,
+    ) -> Result<(), MessagingError> {
+        self.channel
+            .queue_bind(
+                &self.queue,
+                &self.exchange,
+                &topic,
+                QueueBindOptions::default(),
+                FieldTable::default(),
+            )
+            .await
+            .map_err(|e| MessagingError::Subscribe(e.to_string()))?;
+
+        let mut consumer = self
+            .channel
+            .basic_consume(
+                &self.queue,
+                "",
+                BasicConsumeOptions::default(),
+                FieldTable::default(),
+            )
+            .await
+            .map_err(|e| MessagingError::Subscribe(e.to_string()))?;
+
+        tokio::spawn(async move {
+            while let Some(delivery) = consumer.next().await {
+                match delivery {
+                    Ok(delivery) => {
+                        handler.handle(delivery.data.clone()).await;
+                        let _ = delivery.ack(BasicAckOptions::default()).await;
+                    }
+                    Err(e) => {
+                        eprintln!("Rabbit consume error: {}", e);
+                    }
+                }
+            }
+
+            eprintln!("Rabbit subscription ended unexpectedly!");
+            std::process::exit(1);
+        });
+        Ok(())
+    }
+}

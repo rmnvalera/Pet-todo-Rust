@@ -5,46 +5,66 @@ use axum::{
 };
 use serde_json::json;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 #[allow(unused)]
 pub enum AppError {
+    #[error(transparent)]
     Database(sqlx::Error),
-    UserAlreadyExists,
+
+    #[error("Already exists")]
+    AlreadyExists,
+    #[error("Not found")]
     NotFound,
+    #[error("Invalid credentials")]
     Unauthorized,
+    #[error("Internal server error")]
     InternalError,
+    #[error("Missing credentials")]
     MissingToken,
+    #[error("Invalid credentials")]
     InvalidToken,
+    #[error("Invalid Uuid")]
+    InvalidId,
+    #[error("Accsess denide!")]
+    AccessDenied,
+    #[error("{0}")]
+    BadRequest(String),
+    #[error("{0}")]
+    ValidationError(String),
 }
 
-// Вот магия — Axum умеет превращать это в HTTP ответ автоматически
+pub struct ErrorResponse {
+    pub error: AppError,
+}
+
 impl IntoResponse for AppError {
     #[allow(unused)]
     fn into_response(self) -> Response {
-        let (status, message) = match self {
-            AppError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
-            AppError::NotFound => (StatusCode::NOT_FOUND, "Not found"),
+        let (status) = match self {
+            AppError::AlreadyExists => StatusCode::CONFLICT,
+            AppError::NotFound => StatusCode::NOT_FOUND,
             AppError::Unauthorized | AppError::InvalidToken | AppError::MissingToken => {
-                (StatusCode::UNAUTHORIZED, "Invalid credentials")
+                StatusCode::UNAUTHORIZED
             }
-            AppError::Database(_) | AppError::InternalError => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
-            }
+            AppError::Database(_) | AppError::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::AccessDenied => StatusCode::FORBIDDEN,
+            AppError::BadRequest(_) | AppError::InvalidId => StatusCode::BAD_REQUEST,
+            AppError::ValidationError(_) => StatusCode::UNPROCESSABLE_ENTITY,
         };
 
+        let message = self.to_string();
         (status, Json(json!({ "error": message }))).into_response()
     }
 }
 
-// Позволяет использовать ? для sqlx::Error
 impl From<sqlx::Error> for AppError {
     fn from(e: sqlx::Error) -> Self {
         match e {
             sqlx::Error::Database(db_err) if db_err.code().as_deref() == Some("23505") => {
-                AppError::UserAlreadyExists
+                AppError::AlreadyExists
             }
+            sqlx::Error::RowNotFound => AppError::NotFound,
             sqlx::Error::Database(db_err) => {
-                // Временно — посмотреть что реально приходит
                 println!("DB error code: {:?}", db_err.code());
                 println!("DB error message: {:?}", db_err.message());
                 AppError::Database(sqlx::Error::Database(db_err))

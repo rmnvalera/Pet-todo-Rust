@@ -7,6 +7,9 @@ edition.workspace = true
 jsonwebtoken = { workspace = true }
 axum = { workspace = true }
 uuid = { workspace = true }
+validator = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 errors = { path = "../errors" }
-auth_jwt ={ path = "../auth_jwt" }
+auth_jwt = { path = "../auth_jwt" }

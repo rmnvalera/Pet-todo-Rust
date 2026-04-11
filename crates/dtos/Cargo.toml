@@ -4,5 +4,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+axum = {workspace = true}
 serde = { workspace = true }
+validator = { workspace = true }
+
 entities = { path = "../entities" }

@@ -40,10 +40,13 @@ async fn main() {
         service_port
     );
 
-    let state = Arc::new(AppState {
-        db: Database::new(&settings.db).await.unwrap(),
-        settings,
-    });
+    let db = Database::connect(&settings.db).await.unwrap();
+    db.migrate()
+        .await
+        .map_err(|e| format!("Migration Error: {}", e.to_string()))
+        .unwrap();
+
+    let state = Arc::new(AppState { db, settings });
 
     let app = Router::new()
         .route("/", get(root))

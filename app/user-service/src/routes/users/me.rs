@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use axum::{Json, extract::State, debug_handler};
+use axum::{Json, debug_handler, extract::State};
 use dtos::users::UserResponse;
 use errors::AppError;
 use extractors::auth_user::AuthUser;
 
 use crate::AppState;
 
-#[debug_handler] 
+#[debug_handler]
 pub async fn handler(
     AuthUser { user_id, .. }: AuthUser,
     State(state): State<Arc<AppState>>,

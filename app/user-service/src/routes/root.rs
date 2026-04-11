@@ -1,4 +1,4 @@
-use axum::{Json};
+use axum::Json;
 use serde_json::{Value, json};
 
 pub async fn root() -> Json<Value> {

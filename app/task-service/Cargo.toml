@@ -4,7 +4,7 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-axum = { workspace = true, features = ["macros"]}
+axum = { workspace = true, features = ["macros"] }
 async-trait = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
@@ -26,3 +26,4 @@ dtos = { path = "../../crates/dtos" }
 entities = { path = "../../crates/entities" }
 auth_jwt = { path = "../../crates/auth_jwt" }
 extractors = { path = "../../crates/extractors" }
+messaging ={ path = "../../crates/messaging"}

@@ -5,5 +5,8 @@ edition.workspace = true
 
 [dependencies]
 axum = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
-sqlx = {workspace = true}
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+strum_macros = { workspace = true }
