@@ -65,8 +65,8 @@ impl From<sqlx::Error> for AppError {
             }
             sqlx::Error::RowNotFound => AppError::NotFound,
             sqlx::Error::Database(db_err) => {
-                println!("DB error code: {:?}", db_err.code());
-                println!("DB error message: {:?}", db_err.message());
+                tracing::error!("DB error code: {:?}", db_err.code());
+                tracing::error!("DB error message: {:?}", db_err.message());
                 AppError::Database(sqlx::Error::Database(db_err))
             }
             _ => AppError::Database(e),

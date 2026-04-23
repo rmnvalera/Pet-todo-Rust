@@ -4,6 +4,7 @@ use errors::AppError;
 use uuid::Uuid;
 
 #[allow(unused)]
+#[derive(Debug)]
 pub struct AuthUser {
     pub user_id: Uuid,
     pub email: String,

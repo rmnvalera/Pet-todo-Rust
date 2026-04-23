@@ -2,6 +2,7 @@ use auth_jwt::JwtConfig;
 use axum::{Router, routing::get};
 use messaging::{MessageBus, NatsMessageBus, RabbitMessageBus};
 use settings::Settings;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use std::sync::Arc;
 
 use crate::{
@@ -27,6 +28,13 @@ impl JwtConfig for AppState {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new(
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     let settings = Settings::new(
         Option::Some("3002".to_string()),
         Option::Some("task_service".to_string()),
@@ -34,9 +42,9 @@ async fn main() {
     .unwrap();
     let service_port = &settings.port.clone();
 
-    println!("{:?}", settings);
+    tracing::info!("{:?}", settings);
 
-    println!(
+    tracing::info!(
         "{} start on port {}..",
         env!("CARGO_PKG_NAME"),
         service_port

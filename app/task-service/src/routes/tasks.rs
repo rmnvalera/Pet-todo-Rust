@@ -58,7 +58,7 @@ pub async fn get_one(
     State(state): State<Arc<AppState>>,
     user: AuthUser,
 ) -> Result<Json<TaskResponse>, AppError> {
-    println!("one  for: {}", id);
+    tracing::info!("one  for: {}", id);
 
     let task = state.db.get_by(&id).await?;
     if !task.owner_id.eq(&user.user_id) {
@@ -73,7 +73,7 @@ pub async fn get_all(
     user: AuthUser,
     Query(filter): Query<TaskFilter>,
 ) -> Result<Json<PaginatedResponse<TaskResponse>>, AppError> {
-    print!("All");
+    tracing::info!("All");
     let task = state.db.get_all_by(&user.user_id, &filter).await?;
 
     Ok(Json(PaginatedResponse::<TaskResponse> {

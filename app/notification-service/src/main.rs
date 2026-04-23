@@ -5,6 +5,7 @@ use axum::{Router, routing::get};
 use entities::tasks::Task;
 use messaging::{MessageBus, MessageHandler, NatsMessageBus, RabbitMessageBus};
 use settings::Settings;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::routes::{health::health, root::root};
 
@@ -19,23 +20,29 @@ impl MessageHandler for TaskCreatedHandler {
         let task = match serde_json::from_slice::<Task>(&payload) {
             Ok(task) => task,
             Err(e) => {
-                eprintln!("Failed to parse task: {}", e);
+                tracing::error!("Failed to parse task: {}", e);
                 return;
             }
         };
         // 2. Залогируй или "отправь уведомление"
-        println!("get event task created: {:?}", task);
+        tracing::info!("get event task created: {:?}", task);
     }
 }
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new(
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
     let settings = Settings::new(Option::Some("3003".to_string()), Option::None).unwrap();
     let service_port = &settings.port.clone();
 
-    println!("{:?}", settings);
+   tracing::info!("{:?}", settings);
 
-    println!(
+    tracing::info!(
         "{} start on port {}..",
         env!("CARGO_PKG_NAME"),
         service_port
@@ -54,7 +61,7 @@ async fn main() {
     bus.subscribe("task.created", Arc::new(TaskCreatedHandler))
         .await
         .unwrap_or_else(|e| {
-            eprintln!("Failed subscribe task.created: {}", e);
+            tracing::error!("Failed subscribe task.created: {}", e);
             std::process::exit(1);
         });
 

@@ -38,7 +38,7 @@ pub struct NatsMessageBus {
 impl NatsMessageBus {
     pub async fn new(url: &String, queue_group: &str) -> Self {
         let nc = async_nats::connect(url).await.unwrap_or_else(|e| {
-            eprintln!("Failed to connect to Nats: {}", e);
+            tracing::error!("Failed to connect to Nats: {}", e);
             std::process::exit(1);
         });
         Self {
@@ -75,7 +75,7 @@ impl MessageBus for NatsMessageBus {
                 handler.handle(message.payload.to_vec()).await
             }
 
-            eprintln!("NATS subscription ended unexpectedly!");
+            tracing::error!("NATS subscription ended unexpectedly!");
             std::process::exit(1);
         });
 
@@ -95,12 +95,12 @@ impl RabbitMessageBus {
         let connection = Connection::connect(url, ConnectionProperties::default())
             .await
             .unwrap_or_else(|e| {
-                eprintln!("Failed to connect to Rabbit: {}", e);
+                tracing::error!("Failed to connect to Rabbit: {}", e);
                 std::process::exit(1);
             });
 
         let channel = connection.create_channel().await.unwrap_or_else(|e| {
-            eprintln!("Failed to create channel to Rabbit: {}", e);
+            tracing::error!("Failed to create channel to Rabbit: {}", e);
             std::process::exit(1);
         });
 
@@ -109,7 +109,7 @@ impl RabbitMessageBus {
             .await
             .map_err(|e| MessagingError::Publish(e.to_string()))
             .unwrap_or_else(|e| {
-                eprintln!("Failed to queue declare to Rabbit: {}", e);
+                tracing::error!("Failed to queue declare to Rabbit: {}", e);
                 std::process::exit(1);
             });
 
@@ -123,7 +123,7 @@ impl RabbitMessageBus {
             .await
             .map_err(|e| MessagingError::Publish(e.to_string()))
             .unwrap_or_else(|e| {
-                eprintln!("Failed to queue declare to Rabbit: {}", e);
+                tracing::error!("Failed to queue declare to Rabbit: {}", e);
                 std::process::exit(1);
             });
 
@@ -190,12 +190,12 @@ impl MessageBus for RabbitMessageBus {
                         let _ = delivery.ack(BasicAckOptions::default()).await;
                     }
                     Err(e) => {
-                        eprintln!("Rabbit consume error: {}", e);
+                        tracing::error!("Rabbit consume error: {}", e);
                     }
                 }
             }
 
-            eprintln!("Rabbit subscription ended unexpectedly!");
+            tracing::error!("Rabbit subscription ended unexpectedly!");
             std::process::exit(1);
         });
         Ok(())
