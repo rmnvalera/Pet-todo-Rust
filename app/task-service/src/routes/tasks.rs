@@ -29,7 +29,7 @@ pub async fn create(
     ValidatedJson(payload): ValidatedJson<CreateTaskRequest>,
 ) -> Result<Json<TaskResponse>, AppError> {
     // TODO pool.begin()
-    
+
     let task = state
         .db
         .create(

@@ -2,8 +2,8 @@ use auth_jwt::JwtConfig;
 use axum::{Router, routing::get};
 use messaging::{MessageBus, NatsMessageBus, RabbitMessageBus};
 use settings::Settings;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use std::sync::Arc;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
     db::Database,
