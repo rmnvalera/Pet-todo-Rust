@@ -16,7 +16,6 @@ pub struct TaskCreatedHandler;
 #[async_trait]
 impl MessageHandler for TaskCreatedHandler {
     async fn handle(&self, payload: Vec<u8>) {
-        // 1. Десериализуй payload в структуру
         let task = match serde_json::from_slice::<Task>(&payload) {
             Ok(task) => task,
             Err(e) => {
@@ -24,7 +23,6 @@ impl MessageHandler for TaskCreatedHandler {
                 return;
             }
         };
-        // 2. Залогируй или "отправь уведомление"
         tracing::info!("get event task created: {:?}", task);
     }
 }

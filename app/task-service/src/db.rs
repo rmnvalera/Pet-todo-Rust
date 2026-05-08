@@ -94,7 +94,6 @@ impl Database {
         .fetch_all(&self.pool)
         .await?;
 
-        // отдельный запрос для total count
         let total: i64 = sqlx::query_scalar(
             r#"
                 SELECT COUNT(*) FROM tasks

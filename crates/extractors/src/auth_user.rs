@@ -28,14 +28,12 @@ where
             .strip_prefix("Bearer ")
             .ok_or(AppError::InvalidToken)?;
 
-        // 3. Декодируй JWT через jsonwebtoken::decode
         let decode = jsonwebtoken::decode::<Claims>(
             token,
             &jsonwebtoken::DecodingKey::from_secret(state.jwt_secret().as_bytes()),
             &jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256),
         )
         .map_err(|_| AppError::InvalidToken)?;
-        // 4. Верни AuthUser { user_id, email }
 
         let claims = &decode.claims;
         let uuid = Uuid::parse_str(&claims.sub).map_err(|_| AppError::InternalError)?;
