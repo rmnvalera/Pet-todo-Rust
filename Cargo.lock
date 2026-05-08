@@ -1889,6 +1889,7 @@ dependencies = [
  "serde_json",
  "settings",
  "tokio",
+ "tower-http",
  "tracing",
  "tracing-subscriber",
 ]

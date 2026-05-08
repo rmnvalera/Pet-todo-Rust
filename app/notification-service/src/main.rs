@@ -5,6 +5,8 @@ use axum::{Router, routing::get};
 use entities::tasks::Task;
 use messaging::{MessageBus, MessageHandler, NatsMessageBus, RabbitMessageBus};
 use settings::Settings;
+use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
+use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::routes::{health::health, root::root};
@@ -38,7 +40,7 @@ async fn main() {
     let settings = Settings::new(Option::Some("3003".to_string()), Option::None).unwrap();
     let service_port = &settings.port.clone();
 
-   tracing::info!("{:?}", settings);
+    tracing::info!("{:?}", settings);
 
     tracing::info!(
         "{} start on port {}..",
@@ -63,9 +65,34 @@ async fn main() {
             std::process::exit(1);
         });
 
+    let on_failure = TraceLayer::new_for_http()
+        .make_span_with(|request: &axum::http::Request<_>| {
+            tracing::span!(
+                Level::INFO,
+                "request",
+                method = %request.method(),
+                uri = %request.uri(),
+            )
+        })
+        .on_response(
+            |response: &axum::http::Response<_>,
+             latency: std::time::Duration,
+             _span: &tracing::Span| {
+                tracing::info!(status = %response.status(), latency = ?latency);
+            },
+        )
+        .on_failure(
+            |error: ServerErrorsFailureClass,
+             latency: std::time::Duration,
+             _span: &tracing::Span| {
+                tracing::info!(_error = %error, latency = ?latency);
+            },
+        );
+
     let app = Router::new()
         .route("/", get(root))
-        .route("/health", get(health));
+        .route("/health", get(health))
+        .layer(on_failure);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", service_port))
         .await
