@@ -1,3 +1,4 @@
+use anyhow::{Context, Ok};
 use auth_jwt::JwtConfig;
 use axum::{Router, routing::get};
 use settings::Settings;
@@ -27,7 +28,7 @@ impl JwtConfig for AppState {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
@@ -38,8 +39,7 @@ async fn main() {
     let settings = Settings::new(
         Option::Some("3001".to_string()),
         Option::Some("user_service".to_string()),
-    )
-    .unwrap();
+    )?;
     let service_port = &settings.port.clone();
 
     tracing::info!("{:?}", settings);
@@ -50,11 +50,10 @@ async fn main() {
         service_port
     );
 
-    let db = Database::connect(&settings.db).await.unwrap();
-    db.migrate()
+    let db = Database::connect(&settings.db)
         .await
-        .map_err(|e| format!("Migration Error: {}", e.to_string()))
-        .unwrap();
+        .context("Database connection error")?;
+    db.migrate().await.context("Migration Error")?;
 
     let state = Arc::new(AppState { db, settings });
 
@@ -88,8 +87,8 @@ async fn main() {
         .layer(on_failure)
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", service_port))
-        .await
-        .unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", service_port)).await?;
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }

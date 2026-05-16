@@ -18,3 +18,5 @@ settings = { path = "../../crates/settings" }
 errors = { path = "../../crates/errors" }
 messaging = { path = "../../crates/messaging" }
 entities = { path = "../../crates/entities" }
+
+anyhow.workspace = true

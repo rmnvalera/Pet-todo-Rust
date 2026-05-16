@@ -36,15 +36,15 @@ pub struct NatsMessageBus {
     pub queue_group: String,
 }
 impl NatsMessageBus {
-    pub async fn new(url: &String, queue_group: &str) -> Self {
-        let nc = async_nats::connect(url).await.unwrap_or_else(|e| {
-            tracing::error!("Failed to connect to Nats: {}", e);
-            std::process::exit(1);
-        });
-        Self {
+    pub async fn new(url: &String, queue_group: &str) -> Result<Self, MessagingError> {
+        let nc = async_nats::connect(url)
+            .await
+            .map_err(|e| MessagingError::Connection(format!("Nats: {}", e)))?;
+
+        Ok(Self {
             cli: nc,
             queue_group: queue_group.to_string(),
-        }
+        })
     }
 }
 
@@ -91,13 +91,10 @@ pub struct RabbitMessageBus {
 }
 
 impl RabbitMessageBus {
-    pub async fn new(url: &String, queue: &str, exchange: &str) -> Self {
+    pub async fn new(url: &String, queue: &str, exchange: &str) -> Result<Self, MessagingError> {
         let connection = Connection::connect(url, ConnectionProperties::default())
             .await
-            .unwrap_or_else(|e| {
-                tracing::error!("Failed to connect to Rabbit: {}", e);
-                std::process::exit(1);
-            });
+            .map_err(|e| MessagingError::Connection(format!("Rabbit: {}", e)))?;
 
         let channel = connection.create_channel().await.unwrap_or_else(|e| {
             tracing::error!("Failed to create channel to Rabbit: {}", e);
@@ -127,12 +124,12 @@ impl RabbitMessageBus {
                 std::process::exit(1);
             });
 
-        RabbitMessageBus {
+        Ok(RabbitMessageBus {
             connection,
             channel,
             exchange: exchange.to_string(),
             queue: queue.to_string(),
-        }
+        })
     }
 }
 

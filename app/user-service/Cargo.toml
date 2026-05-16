@@ -30,3 +30,5 @@ dtos = { path = "../../crates/dtos" }
 entities = { path = "../../crates/entities" }
 auth_jwt = { path = "../../crates/auth_jwt" }
 extractors = { path = "../../crates/extractors" }
+
+anyhow.workspace = true

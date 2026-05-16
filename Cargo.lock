@@ -1880,6 +1880,7 @@ dependencies = [
 name = "notification-service"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "axum",
  "entities",
@@ -3278,6 +3279,7 @@ dependencies = [
 name = "task-service"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "auth_jwt",
  "axum",
@@ -3702,6 +3704,7 @@ dependencies = [
 name = "user-service"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "auth_jwt",
  "axum",

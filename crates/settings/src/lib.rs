@@ -48,8 +48,7 @@ impl Settings {
         default_port: Option<String>,
         default_db_shema: Option<String>,
     ) -> Result<Self, ConfigError> {
-        // dotenvy::dotenv().ok();
-        let current_dir = env::current_dir().unwrap();
+        let current_dir = env::current_dir().map_err(|e| ConfigError::Message(e.to_string()))?;
         let setting_path = current_dir.join("Settings.yaml");
 
         let s = Config::builder()

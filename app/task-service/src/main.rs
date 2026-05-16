@@ -1,3 +1,4 @@
+use anyhow::{Context, Ok};
 use auth_jwt::JwtConfig;
 use axum::{Router, routing::get};
 use messaging::{MessageBus, NatsMessageBus, RabbitMessageBus};
@@ -27,7 +28,7 @@ impl JwtConfig for AppState {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
@@ -38,8 +39,7 @@ async fn main() {
     let settings = Settings::new(
         Option::Some("3002".to_string()),
         Option::Some("task_service".to_string()),
-    )
-    .unwrap();
+    )?;
     let service_port = &settings.port.clone();
 
     tracing::info!("{:?}", settings);
@@ -50,18 +50,18 @@ async fn main() {
         service_port
     );
 
-    let db = Database::connect(&settings.db).await.unwrap();
-    db.migrate()
+    let db = Database::connect(&settings.db)
         .await
-        .map_err(|e| format!("Migration Error: {}", e.to_string()))
-        .unwrap();
+        .context("Failed to connect to database")?;
+
+    db.migrate().await.context("Failed to run migrations")?;
 
     let bus: Arc<dyn MessageBus> = match settings.messaging.provider.as_str() {
         "nats" => {
-            Arc::new(NatsMessageBus::new(&settings.messaging.url, env!("CARGO_PKG_NAME")).await)
+            Arc::new(NatsMessageBus::new(&settings.messaging.url, env!("CARGO_PKG_NAME")).await?)
         }
         "rabbitmq" => Arc::new(
-            RabbitMessageBus::new(&settings.messaging.url, env!("CARGO_PKG_NAME"), "event").await,
+            RabbitMessageBus::new(&settings.messaging.url, env!("CARGO_PKG_NAME"), "event").await?,
         ),
         _ => panic!("Unknown messaging provider"),
     };
@@ -74,8 +74,8 @@ async fn main() {
         .nest("/tasks", router())
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", service_port))
-        .await
-        .unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", service_port)).await?;
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }
