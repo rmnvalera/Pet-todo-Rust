@@ -16,8 +16,9 @@ chrono = { workspace = true }
 humantime = { workspace = true }
 
 # db
-sqlx.workspace = true
+sea-orm.workspace = true
 uuid.workspace = true
+user-migration = { path = "./migration" }
 
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
@@ -32,3 +33,5 @@ auth_jwt = { path = "../../crates/auth_jwt" }
 extractors = { path = "../../crates/extractors" }
 
 anyhow.workspace = true
+
+

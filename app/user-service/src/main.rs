@@ -1,23 +1,21 @@
-use anyhow::{Context, Ok};
+use anyhow::Ok;
 use auth_jwt::JwtConfig;
 use axum::{Router, routing::get};
+use migration::{Migrator, MigratorTrait};
+use sea_orm::{Database, DatabaseConnection};
 use settings::Settings;
 use std::sync::Arc;
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::{
-    db::Database,
-    routes::{health::health, root::root},
-};
+use crate::routes::{health::health, root::root};
 
-mod db;
 mod routes;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Database,
+    pub db: DatabaseConnection,
     pub settings: Settings,
 }
 
@@ -50,27 +48,28 @@ async fn main() -> anyhow::Result<()> {
         service_port
     );
 
-    let db = Database::connect(&settings.db)
+    let conn = Database::connect(settings.db.get_url())
         .await
-        .context("Database connection error")?;
-    db.migrate().await.context("Migration Error")?;
+        .expect("Database connection failed");
+    Migrator::up(&conn, None).await.unwrap();
 
-    let state = Arc::new(AppState { db, settings });
+    let state = Arc::new(AppState { db: conn, settings });
 
-    let on_failure = TraceLayer::new_for_http()
+    let _on_failure = TraceLayer::new_for_http()
         .make_span_with(|request: &axum::http::Request<_>| {
             tracing::span!(
                 Level::INFO,
                 "request",
                 method = %request.method(),
                 uri = %request.uri(),
+                headers = ?request.headers(),
             )
         })
         .on_response(
             |response: &axum::http::Response<_>,
              latency: std::time::Duration,
              _span: &tracing::Span| {
-                tracing::info!(status = %response.status(), latency = ?latency);
+                tracing::info!(status = %response.status(), Latency = ?latency);
             },
         )
         .on_failure(
@@ -84,7 +83,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/", get(root))
         .route("/health", get(health))
         .nest("/users", routes::users::router())
-        .layer(on_failure)
+        .layer(_on_failure)
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", service_port)).await?;

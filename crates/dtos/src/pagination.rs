@@ -5,5 +5,5 @@ pub struct PaginatedResponse<T> {
     pub data: Vec<T>,
     pub page: u32,
     pub per_page: u32,
-    pub total: i64,
+    pub total: u64,
 }

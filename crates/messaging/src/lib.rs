@@ -36,7 +36,7 @@ pub struct NatsMessageBus {
     pub queue_group: String,
 }
 impl NatsMessageBus {
-    pub async fn new(url: &String, queue_group: &str) -> Result<Self, MessagingError> {
+    pub async fn new(url: &str, queue_group: &str) -> Result<Self, MessagingError> {
         let nc = async_nats::connect(url)
             .await
             .map_err(|e| MessagingError::Connection(format!("Nats: {}", e)))?;
@@ -91,7 +91,7 @@ pub struct RabbitMessageBus {
 }
 
 impl RabbitMessageBus {
-    pub async fn new(url: &String, queue: &str, exchange: &str) -> Result<Self, MessagingError> {
+    pub async fn new(url: &str, queue: &str, exchange: &str) -> Result<Self, MessagingError> {
         let connection = Connection::connect(url, ConnectionProperties::default())
             .await
             .map_err(|e| MessagingError::Connection(format!("Rabbit: {}", e)))?;
@@ -161,7 +161,7 @@ impl MessageBus for RabbitMessageBus {
             .queue_bind(
                 &self.queue,
                 &self.exchange,
-                &topic,
+                topic,
                 QueueBindOptions::default(),
                 FieldTable::default(),
             )

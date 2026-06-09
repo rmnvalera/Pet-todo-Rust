@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use auth_jwt::Claims;
 use axum::{Json, extract::State};
-use chrono::Duration;
+use chrono::{Duration, Utc};
 use dtos::users::{JwtResponse, LoginRequest};
+use entities::users::{Column, Entity as User};
 use errors::AppError;
-use sqlx::types::chrono::Utc;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
 use crate::AppState;
 
@@ -14,7 +15,12 @@ pub async fn handler(
     Json(payload): Json<LoginRequest>,
 ) -> Result<Json<JwtResponse>, AppError> {
     let settings = &state.settings;
-    let user = state.db.get_user_by_email(&payload.email).await?;
+    let user = User::find()
+        .filter(Column::Email.eq(&payload.email))
+        .one(&state.db)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
     let is_valid = bcrypt::verify(&payload.password, &user.password_hash)
         .map_err(|_| AppError::InternalError)?;
 

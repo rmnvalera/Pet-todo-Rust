@@ -2,8 +2,14 @@ use std::sync::Arc;
 
 use axum::{Json, extract::State};
 use bcrypt::{DEFAULT_COST, hash};
+use chrono::Utc;
 use dtos::users::{RegisterRequest, UserResponse};
+use entities::users::ActiveModel as UserActiveModel;
 use errors::AppError;
+use sea_orm::{
+    ActiveModelTrait,
+    ActiveValue::{NotSet, Set},
+};
 
 use crate::AppState;
 
@@ -14,11 +20,15 @@ pub async fn handler(
     let password_hash =
         hash(&payload.password, DEFAULT_COST).map_err(|_| AppError::InternalError)?;
 
-    // ? auto call From<sqlx::Error> for AppError
-    let user = state
-        .db
-        .create_user(&payload.email, &payload.name, &password_hash)
-        .await?;
+    let user = UserActiveModel {
+        id: NotSet,
+        email: Set(payload.email),
+        name: Set(payload.name),
+        password_hash: Set(password_hash),
+        created_at: Set(Utc::now()),
+    };
+
+    let user = user.insert(&state.db).await?;
 
     Ok(Json(user.into()))
 }

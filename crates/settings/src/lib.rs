@@ -10,7 +10,7 @@ mod human_duration;
 #[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
     pub port: u16,
-    pub db: Db,
+    pub db: DbSettings,
     pub jwt: Auth,
     pub messaging: Messaging,
 }
@@ -22,12 +22,12 @@ pub struct Messaging {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Db {
+pub struct DbSettings {
     url: String,
     pub shema: String,
 }
 
-impl Db {
+impl DbSettings {
     pub fn get_url(&self) -> String {
         if self.url.contains('?') {
             format!("{}&options=-csearch_path={}", self.url, self.shema)

@@ -7,10 +7,10 @@ RUN cargo build --release -p $APP_NAME
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
-    libssl3 \
-    libpq5 \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+  libssl3 \
+  libpq5 \
+  ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /usr/local/bin
 ARG APP_NAME
 ENV APP_NAME=$APP_NAME

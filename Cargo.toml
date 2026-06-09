@@ -31,13 +31,12 @@ bcrypt = "0.19.0"
 jsonwebtoken = "9"
 
 # db
-sqlx = { version = "0.8", features = [
-    "postgres",
-    "runtime-tokio",
-    "uuid",
-    "chrono",
-    "macros",
+sea-orm = { version = "2.0.0-rc", features = [
+  "sqlx-postgres",
+  "runtime-tokio",
+  "macros",
 ] }
+
 uuid = { version = "1", features = ["v4", "serde"] }
 
 tracing = "0.1"

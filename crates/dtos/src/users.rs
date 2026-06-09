@@ -1,4 +1,4 @@
-use entities::users::User;
+use entities::users::Model as User;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]

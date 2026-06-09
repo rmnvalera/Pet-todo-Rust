@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Context;
 use async_trait::async_trait;
 use axum::{Router, routing::get};
-use entities::tasks::Task;
+use entities::tasks::Model as Task;
 use messaging::{MessageBus, MessageHandler, NatsMessageBus, RabbitMessageBus};
 use settings::Settings;
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};

@@ -1,22 +1,20 @@
-use anyhow::{Context, Ok};
+use anyhow::Ok;
 use auth_jwt::JwtConfig;
 use axum::{Router, routing::get};
 use messaging::{MessageBus, NatsMessageBus, RabbitMessageBus};
+use sea_orm::{Database, DatabaseConnection};
 use settings::Settings;
 use std::sync::Arc;
+use task_migration::{Migrator, MigratorTrait};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::{
-    db::Database,
-    routes::{health::health, root::root, tasks::router},
-};
+use crate::routes::{health::health, root::root, tasks::router};
 
-mod db;
 mod routes;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Database,
+    pub db: DatabaseConnection,
     pub settings: Settings,
     pub bus: Arc<dyn MessageBus>,
 }
@@ -50,11 +48,10 @@ async fn main() -> anyhow::Result<()> {
         service_port
     );
 
-    let db = Database::connect(&settings.db)
+    let conn = Database::connect(settings.db.get_url())
         .await
-        .context("Failed to connect to database")?;
-
-    db.migrate().await.context("Failed to run migrations")?;
+        .expect("Database connection failed");
+    Migrator::up(&conn, None).await.unwrap();
 
     let bus: Arc<dyn MessageBus> = match settings.messaging.provider.as_str() {
         "nats" => {
@@ -66,7 +63,11 @@ async fn main() -> anyhow::Result<()> {
         _ => panic!("Unknown messaging provider"),
     };
 
-    let state = Arc::new(AppState { db, settings, bus });
+    let state = Arc::new(AppState {
+        db: conn,
+        settings,
+        bus,
+    });
 
     let app = Router::new()
         .route("/", get(root))

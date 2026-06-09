@@ -1,4 +1,5 @@
-use entities::tasks::{Priority, Task, TaskStatus};
+use entities::tasks::Model as Task;
+use entities::tasks::{Priority, TaskStatus};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 

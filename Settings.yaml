@@ -1,7 +1,7 @@
 # port: 3002
 
 db:
-  url: postgres://postgres:changeme@localhost:5432/todo
+  url: postgres://postgres:changeme@localhost:5433/todo
 
 jwt:
   secret: secret
