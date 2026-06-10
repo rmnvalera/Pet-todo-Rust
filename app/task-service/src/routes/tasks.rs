@@ -95,7 +95,7 @@ pub async fn get_all(
     let page = filter.page();
 
     let task_query = Task::find()
-        .filter(Column::Id.eq(user.user_id))
+        .filter(Column::OwnerId.eq(user.user_id))
         .apply_if(filter.status, |q, v| q.filter(Column::Status.eq(v)))
         .apply_if(filter.priority, |q, v| q.filter(Column::Priority.eq(v)))
         .apply_if(filter.search.clone(), |q, v| {
