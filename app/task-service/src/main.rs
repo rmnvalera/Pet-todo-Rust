@@ -6,6 +6,7 @@ use sea_orm::{Database, DatabaseConnection};
 use settings::Settings;
 use std::sync::Arc;
 use task_migration::{Migrator, MigratorTrait};
+use tower_http::cors::{Any, CorsLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::routes::{health::health, root::root, tasks::router};
@@ -33,6 +34,11 @@ async fn main() -> anyhow::Result<()> {
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
 
     let settings = Settings::new(
         Option::Some("3002".to_string()),
@@ -73,6 +79,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/", get(root))
         .route("/health", get(health))
         .nest("/tasks", router())
+        .layer(cors)
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", service_port)).await?;

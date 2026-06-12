@@ -1,0 +1,14 @@
+[package]
+name = "frontend"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+leptos = { version = "0.8", features = ["csr"] }
+leptos_router = { version = "0.8", feature = ["navigate"] }
+gloo-net = { version = "0.7", features = ["http"] }
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = ["Window", "Storage"] }
+
+serde = { workspace = true }
+serde_json = { workspace = true }

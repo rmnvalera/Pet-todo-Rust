@@ -5,7 +5,11 @@ use migration::{Migrator, MigratorTrait};
 use sea_orm::{Database, DatabaseConnection};
 use settings::Settings;
 use std::sync::Arc;
-use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
+use tower_http::{
+    classify::ServerErrorsFailureClass,
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -33,6 +37,11 @@ async fn main() -> anyhow::Result<()> {
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
 
     let settings = Settings::new(
         Option::Some("3001".to_string()),
@@ -84,6 +93,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/health", get(health))
         .nest("/users", routes::users::router())
         .layer(_on_failure)
+        .layer(cors)
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", service_port)).await?;

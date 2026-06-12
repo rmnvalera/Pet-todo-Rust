@@ -5,7 +5,7 @@ edition = "2024"
 
 
 [workspace]
-members = ["app/*", "crates/*"]
+members = ["app/*", "crates/*", "frontend"]
 resolver = "2"
 
 
@@ -41,6 +41,6 @@ uuid = { version = "1", features = ["v4", "serde"] }
 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tower-http = { version = "0.5", features = ["trace"] }
+tower-http = { version = "0.5", features = ["trace", "cors"] }
 
 anyhow = { version = "1" }
