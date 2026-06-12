@@ -11,6 +11,7 @@ use lapin::{
     },
     types::FieldTable,
 };
+use tokio::task::JoinHandle;
 
 use crate::error::MessagingError;
 
@@ -23,7 +24,7 @@ pub trait MessageBus: Send + Sync {
         &self,
         topic: &str,
         handler: Arc<dyn MessageHandler>,
-    ) -> Result<(), MessagingError>;
+    ) -> Result<JoinHandle<()>, MessagingError>;
 }
 
 #[async_trait]
@@ -37,7 +38,7 @@ pub struct NatsMessageBus {
 }
 impl NatsMessageBus {
     pub async fn new(url: &str, queue_group: &str) -> Result<Self, MessagingError> {
-        let nc = async_nats::connect(url)
+        let nc = async_nats::connect(&url)
             .await
             .map_err(|e| MessagingError::Connection(format!("Nats: {}", e)))?;
 
@@ -63,14 +64,14 @@ impl MessageBus for NatsMessageBus {
         &self,
         topic: &str,
         handler: Arc<dyn MessageHandler>,
-    ) -> Result<(), MessagingError> {
+    ) -> Result<JoinHandle<()>, MessagingError> {
         let mut subscriber = self
             .cli
             .queue_subscribe(topic.to_string(), self.queue_group.clone())
             .await
             .map_err(|e| MessagingError::Subscribe(e.to_string()))?;
 
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             while let Some(message) = subscriber.next().await {
                 handler.handle(message.payload.to_vec()).await
             }
@@ -78,8 +79,7 @@ impl MessageBus for NatsMessageBus {
             tracing::error!("NATS subscription ended unexpectedly!");
             std::process::exit(1);
         });
-
-        Ok(())
+        Ok(handle)
     }
 }
 
@@ -156,7 +156,7 @@ impl MessageBus for RabbitMessageBus {
         &self,
         topic: &str,
         handler: Arc<dyn MessageHandler>,
-    ) -> Result<(), MessagingError> {
+    ) -> Result<JoinHandle<()>, MessagingError> {
         self.channel
             .queue_bind(
                 &self.queue,
@@ -179,7 +179,7 @@ impl MessageBus for RabbitMessageBus {
             .await
             .map_err(|e| MessagingError::Subscribe(e.to_string()))?;
 
-        tokio::spawn(async move {
+        let handele = tokio::spawn(async move {
             while let Some(delivery) = consumer.next().await {
                 match delivery {
                     Ok(delivery) => {
@@ -195,6 +195,6 @@ impl MessageBus for RabbitMessageBus {
             tracing::error!("Rabbit subscription ended unexpectedly!");
             std::process::exit(1);
         });
-        Ok(())
+        Ok(handele)
     }
 }
