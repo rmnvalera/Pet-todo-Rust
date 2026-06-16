@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package pet_todo.notification.v1;
+
+service NotificationService {
+  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
+  rpc SubscribeNotifications(SubscribeRequest) returns (stream Notification);
+}
+
+message SendNotificationRequest {
+  string user_id = 1;
+  string topic = 2;
+  string message = 3;
+  map<string, string> metadata = 4;
+}
+
+message SendNotificationResponse {
+  bool delivered = 1;
+}
+
+message SubscribeRequest {
+  string user_id = 1;
+}
+
+message Notification {
+  string topic = 1;
+  string message = 2;
+  int64 created_at = 3; // unix timestamp
+}

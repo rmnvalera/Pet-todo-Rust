@@ -1,13 +1,24 @@
-use std::sync::Arc;
-
 use anyhow::Context;
 use async_trait::async_trait;
 use entities::tasks::Model as Task;
 use messaging::{MessageBus, MessageHandler, NatsMessageBus, RabbitMessageBus};
 use settings::Settings;
+use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+use crate::{
+    grpc::notification_service::{
+        NotificationServiceImpl,
+        notification::notification_service_server::NotificationServiceServer,
+    },
+    state::AppState,
+};
+
 pub struct TaskCreatedHandler;
+
+pub mod bus;
+pub mod grpc;
+pub mod state;
 
 #[async_trait]
 impl MessageHandler for TaskCreatedHandler {
@@ -31,9 +42,11 @@ async fn main() -> anyhow::Result<()> {
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
-    let settings = Settings::new(Option::Some("3003".to_string()), Option::None)
+    let settings = Settings::new(Option::Some("50051".to_string()), Option::None)
         .context("Configuration Error")?;
-    let service_port = &settings.port.clone();
+    let service_port = format!("0.0.0.0:{}", &settings.port.clone()).parse()?;
+
+    let app_state = AppState::new();
 
     tracing::info!("{:?}", settings);
 
@@ -42,6 +55,11 @@ async fn main() -> anyhow::Result<()> {
         env!("CARGO_PKG_NAME"),
         service_port
     );
+
+    let bus_state = app_state.clone();
+    tokio::spawn(async move {
+        bus::consumer::run(bus_state).await;
+    });
 
     let bus: Arc<dyn MessageBus> = match settings.messaging.provider.as_str() {
         "nats" => {
@@ -53,10 +71,20 @@ async fn main() -> anyhow::Result<()> {
         _ => panic!("Unknown messaging provider"),
     };
 
-    let handle = bus
+    let _handle = bus
         .subscribe("task.created", Arc::new(TaskCreatedHandler))
         .await?;
 
-    handle.await?;
+    // handle.await?;
+
+    let service = NotificationServiceImpl::new(app_state);
+
+    tracing::info!("gRPC server listener on {service_port}");
+
+    tonic::transport::Server::builder()
+        .add_service(NotificationServiceServer::new(service))
+        .serve(service_port)
+        .await?;
+
     anyhow::Ok(())
 }

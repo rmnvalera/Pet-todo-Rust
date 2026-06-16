@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 async-trait = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
+tokio-stream = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 
@@ -18,3 +19,18 @@ messaging = { path = "../../crates/messaging" }
 entities = { path = "../../crates/entities" }
 
 anyhow.workspace = true
+
+tonic = { workspace = true }
+tonic-prost = { workspace = true }
+prost = { workspace = true }
+
+tower-http = { workspace = true }
+tower = { workspace = true }
+
+dashmap = { workspace = true }
+chrono = { workspace = true }
+
+[build-dependencies]
+tonic-prost-build = { workspace = true }
+tonic-build = { workspace = true }
+prost-build = { workspace = true }
