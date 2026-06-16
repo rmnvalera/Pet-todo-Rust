@@ -36,12 +36,3 @@ pub struct JwtResponse {
     pub token: String,
     pub user: UserResponse,
 }
-
-impl From<(String, User)> for JwtResponse {
-    fn from(value: (String, User)) -> Self {
-        Self {
-            token: value.0,
-            user: value.1.into(),
-        }
-    }
-}
